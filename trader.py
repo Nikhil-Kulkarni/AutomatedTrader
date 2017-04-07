@@ -1,10 +1,10 @@
 import scraper
 from Equity import Equity
 from DecimalEncoder import DecimalEncoder
-from yahoo_finance import Share
 from datetime import date
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
+from googlefinance import getQuotes
 import boto3
 import math
 import decimal
@@ -28,8 +28,7 @@ def trade(money):
 
     # Most common BUY Rating
     mostCommonBuyTicker = max(set(equitiesBuyRating), key=equitiesBuyRating.count)
-    share = Share(mostCommonBuyTicker)
-    priceOfShare = float(share.get_price())
+    priceOfShare = getQuotes(mostCommonBuyTicker)[0]['LastTradePrice']
 
     # Compute the number of shares I can buy
     numberOfShares = math.floor(money/priceOfShare)
@@ -56,6 +55,7 @@ def sell():
     today = date.today()
     timestamp = str(today.year) + "-" + str(today.month) + "-" + str(today.day)
 
+
     try:
         response = stocks.get_item(
             Key={
@@ -69,13 +69,12 @@ def sell():
         item = response['Item']
 
         numberShares = item['shares']
-        share = Share(item['ticker'])
+        lastTradePrice = getQuotes(str(item['ticker']))[0][u'LastTradePrice']
+        print(lastTradePrice)
 
-        print(share.get_price())
-        print(json.dumps(item, indent=4, cls=DecimalEncoder))
-
-        amountIMade = float(share.get_price()) * float(numberShares)
+        amountIMade = float(lastTradePrice) * float(numberShares) - float(item['price']) * float(numberShares)
         print(amountIMade)
+        
         # trade(amountIMade)
 
 
