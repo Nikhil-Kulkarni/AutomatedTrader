@@ -4,8 +4,8 @@ from bs4 import BeautifulSoup
 from Equity import Equity
 
 # Get today's upgrades
-def getTodaysEquities():
-    today = date.today()
+def getTodaysEquities(currentDate):
+    today = currentDate
     content = urllib2.urlopen("https://www.briefing.com/Investor/Calendars/Upgrades-Downgrades/Upgrades/" + str(today.year) + "/" + str(today.month) + "/" + str(today.day)).read()
 
     soup = BeautifulSoup(content, "html5lib")
