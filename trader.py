@@ -3,9 +3,12 @@ from Equity import Equity
 from DecimalEncoder import DecimalEncoder
 from yahoo_finance import Share
 from datetime import date
+from boto3.dynamodb.conditions import Key, Attr
+from botocore.exceptions import ClientError
 import boto3
 import math
 import decimal
+import json
 
 # Save today's buys and sells
 dynamodb = boto3.resource('dynamodb')
@@ -50,5 +53,32 @@ def trade(money):
 def sell():
     stocks = dynamodb.Table('Stocks')
 
+    today = date.today()
+    timestamp = str(today.year) + "-" + str(today.month) + "-" + str(today.day)
+
+    try:
+        response = stocks.get_item(
+            Key={
+                'timestamp': timestamp,
+                'transactionType':'BUY'
+            }
+        )
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+    else:
+        item = response['Item']
+
+        numberShares = item['shares']
+        share = Share(item['ticker'])
+
+        print(share.get_price())
+        print(json.dumps(item, indent=4, cls=DecimalEncoder))
+
+        amountIMade = float(share.get_price()) * float(numberShares)
+        print(amountIMade)
+        # trade(amountIMade)
+
+
+
 # Trade
-trade(1000)
+sell()
