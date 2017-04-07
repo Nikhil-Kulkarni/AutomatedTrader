@@ -46,5 +46,9 @@ def trade(money):
         }
     )
 
-# initialize()
+# Sell entire portfolio
+def sell():
+    stocks = dynamodb.Table('Stocks')
+
+# Trade
 trade(1000)
