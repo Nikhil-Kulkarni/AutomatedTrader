@@ -25,29 +25,32 @@ def trade(money, currentDate):
 
     for equity in equities:
         if str(equity.currentRating) == " Strong Buy" or str(equity.currentRating) == " Outperform" or str(equity.currentRating) == " Sector Outperform" or str(equity.currentRating) == " Mkt Outperform":
-            equitiesBuyRating.append(str(equity.ticker))
+            equitiesBuyRating.append(equity)
 
-    # Most common BUY Rating
-    mostCommonBuyTicker = max(set(equitiesBuyRating), key=equitiesBuyRating.count)
-    # priceOfShare = float(getQuotes(mostCommonBuyTicker)[0]['LastTradePrice'])
-    share = Share(str(mostCommonBuyTicker))
-    priceOfShare = float(share.get_historical(str(currentDate), str(currentDate))[0]['Open'])
+    listOfPurchases = []
+    topStocksToPurchase = equitiesBuyRating[:4]
 
-    # Compute the number of shares I can buy
-    numberOfShares = math.floor(money/priceOfShare)
+    # Take 4 4 stocks and buy them
+    for stock in topStocksToPurchase:
+        amountInvestedPerStock = float(money / len(topStocksToPurchase))
 
-    # Timestamp
-    today = currentDate
-    timestamp = str(today.year) + "-" + str(today.month) + "-" + str(today.day)
+        ticker = stock.ticker
+        share = Share(str(ticker))
+        priceOfShare = float(share.get_historical(str(currentDate), str(currentDate))[0]['Open'])
+
+        # Compute the number of shares of this stock I can buy
+        numberOfShares = math.floor(amountInvestedPerStock/priceOfShare)
+        listOfPurchases.append({'price':decimal.Decimal(str(priceOfShare)), 'shares':decimal.Decimal(str(numberOfShares)), 'ticker':str(ticker)})
+
+    # Buy the shares and save to DB
+    timestamp = str(currentDate.year) + "-" + str(currentDate.month) + "-" + str(currentDate.day)
 
     # Save to db
     response = stocks.put_item(
         Item={
-            'ticker':mostCommonBuyTicker,
-            'timestamp':timestamp,
-            'price':decimal.Decimal(str(priceOfShare)),
-            'shares':decimal.Decimal(numberOfShares),
             'transactionType':'BUY',
+            'timestamp':timestamp,
+            'listOfPurchases':listOfPurchases,
             'bank':decimal.Decimal(str(money))
         }
     )
@@ -81,17 +84,25 @@ def sell(currentDate):
     except ClientError as e:
         print(e.response['Error']['Message'])
     else:
-        item = response['Item']
+        purchase = response['Item']
+        itemsPurchased = purchase['listOfPurchases']
 
-        numberShares = item['shares']
-        # lastTradePrice = getQuotes(str(item['ticker']))[0][u'LastTradePrice']
-        share = Share(str(item['ticker']))
-        lastTradePrice = float(share.get_historical(str(currentDate), str(currentDate))[0]['Open'])
+        portfolioValue = 0
+        amountNotInvested = 0
+        listOfSells = []
 
-        amountIMade = float(lastTradePrice) * float(numberShares) - float(item['price']) * float(numberShares)
-        print("Net gain: " + str(amountIMade))
-        valueInBank = float(lastTradePrice) * float(numberShares) + (float(item['bank']) - float(numberShares) * float(item['price']))
-        print("Bank: " + str(valueInBank))
+        for item in itemsPurchased:
+            numberShares = item['shares']
+            ticker = item['ticker']
+            share = Share(str(item['ticker']))
+            lastTradePrice = float(share.get_historical(str(currentDate), str(currentDate))[0]['Open'])
+            portfolioValue = portfolioValue + float(lastTradePrice) * float(numberShares)
+            amountNotInvested = amountNotInvested + (float(purchase['bank']/len(itemsPurchased)) - float(numberShares) * float(item['price']))
+            listOfSells.append({'price':decimal.Decimal(str(lastTradePrice)), 'shares':decimal.Decimal(str(numberShares)), 'ticker':str(ticker)})
+
+        newBankValue = portfolioValue + amountNotInvested
+        print("Net gain: " + str(newBankValue - float(purchase['bank'])))
+        print("Bank: " + str(newBankValue))
 
         # Timestamp
         today = currentDate
@@ -100,16 +111,19 @@ def sell(currentDate):
         # Save to db
         response = stocks.put_item(
             Item={
-                'ticker':str(item['ticker']),
+                'transactionType':'BUY',
                 'timestamp':timestamp,
-                'price':decimal.Decimal(str(lastTradePrice)),
-                'shares':decimal.Decimal(numberShares),
-                'transactionType':'SELL',
-                'bank':decimal.Decimal(str(valueInBank))
+                'listOfPurchases':listOfSells,
+                'bank':decimal.Decimal(str(newBankValue))
             }
         )
 
-        trade(valueInBank, currentDate)
+        trade(newBankValue, currentDate)
+
+# Strategy Idea 2:
+# 1. Choose 4 stocks with strong buy or outperform rating
+# and buy equal amounts of all 4
+# 2. Sell the next morning and repeat
 
 # Trade - January
 # initialDate = date(2017, 1, 3)
@@ -133,6 +147,7 @@ def sell(currentDate):
 initialDate = date(2017, 3, 1)
 initialBank = 1000
 trade(initialBank, initialDate)
+# sell(initialDate)
 for day in range(2, 32) :
     if day not in [4, 5, 11, 12, 18, 19, 25, 26]:
         currentDate = date(2017, 3, day)

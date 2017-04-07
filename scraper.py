@@ -24,7 +24,7 @@ def getTodaysEquities(currentDate):
         previousRating = ratingChange[0]
         currentRating = ratingChange[1]
 
-        # Append Equity to object to array
+        # Append Equity object to array
         equities.append(Equity(name, ticker, brokerage, previousRating, currentRating))
 
     return equities
