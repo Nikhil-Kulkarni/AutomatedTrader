@@ -70,11 +70,21 @@ def sell():
 
         numberShares = item['shares']
         lastTradePrice = getQuotes(str(item['ticker']))[0][u'LastTradePrice']
-        print(lastTradePrice)
 
         amountIMade = float(lastTradePrice) * float(numberShares) - float(item['price']) * float(numberShares)
         print(amountIMade)
-        
+
+        # Save to db
+        response = stocks.put_item(
+            Item={
+                'ticker':str(item['ticker']),
+                'timestamp':timestamp,
+                'price':decimal.Decimal(str(lastTradePrice)),
+                'shares':decimal.Decimal(numberShares),
+                'transactionType':'SELL'
+            }
+        )
+
         # trade(amountIMade)
 
 
