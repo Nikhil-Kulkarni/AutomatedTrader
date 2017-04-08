@@ -1,0 +1,8 @@
+# Automated Stock Trader
+## Strategy 1
+- Buy stock with most Strong Buy or Outperform ratings from briefing.com
+- Sell everything the next day and repeat
+
+## Strategy 2
+- Buy 4 stocks with most Strong Buy or Outperform ratings from briefing.com to diversify portfolio
+- Sell everything the next day and repeat
