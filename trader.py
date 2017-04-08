@@ -168,9 +168,9 @@ def daterange(start_date, end_date):
 trader = Trader()
 
 start = date(2016, 4, 8)
-trader.trade(1000, start)
+trader.trade(3000, start)
 start_date = date(2016, 4, 9)
-end_date = date(2017, 10, 8)
+end_date = date(2017, 4, 6)
 for single_date in daterange(start_date, end_date):
     if single_date.weekday() < 5:
         # print single_date.strftime("%Y-%m-%d")
